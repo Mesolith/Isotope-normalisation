@@ -18,6 +18,10 @@
 # 1. Put your runfile's location in the quotation marks" Change nothing else in line 15.
 #<- remove this comment if using lab basement computer ->  setwd("C:/Users/Sercon_1/Desktop") # Place csv file on desktop
 #setwd("~/Dropbox Oxford/Dropbox/dropbox AGRICURB/Runfiles/160812")
+
+# reads selected columns of the csv data file into a table called name 
+# without the headders
+
 name <- read.csv("160812.csv", header=F)[, c(1:3, 5, 6,9:11)]
 
 runfile.id <- "160812"
