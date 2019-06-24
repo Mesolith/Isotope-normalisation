@@ -86,7 +86,7 @@ data$pcN <- data$Nugdc/data$Wt/10
 data$CN <- data$Cugdc/data$Nugdc*14/12
 
 # This is removing some data points at pos 7, 38 and 55
-# because in this particular run they have wrong  or values or
+# because in this particular run they have wrong values or
 # are poor analyses....but only in this run!!!
 data <- data[data$Ps!=7 & data$Ps!=38 & data$Ps!=55, ]
 
