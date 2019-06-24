@@ -63,11 +63,16 @@ name2 <- name[9:((rownumber[name[,1]=="Drift Corrected"])-2),]
 #to the end of the file into a table called name3 
 name3 <- name[((rownumber[name[,1]=="Drift Corrected"])+4):nrow(name),]
 
+# combines the entries in name2 and  some from name3 
+# into a new data frame called data
+# not sure what the function strReverse is doing
+
 strReverse <- function(x)
   sapply(lapply(strsplit(x, NULL), rev), paste, collapse="")
 runname <- runfile.id      
 data <- data.frame(name2,  name3[,4:8], rep(runname, nrow(name2)), rep(0, nrow(name2)),rep(0, nrow(name2)),rep(0, nrow(name2)))
 
+# add colunm names to the data.frame (data)
 names(data) <- c("Ps", "ID", "Wt", "NugR", "d15NR", "CugR", "d13CR", "d18OR", "Nugdc", "d15Ndc", "Cugdc", "d13Cdc", "d18Odc", "Runfile", "pcC", "pcN", "CN")
 
 
