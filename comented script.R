@@ -85,6 +85,7 @@ data$pcC <- data$Cugdc/data$Wt/10
 data$pcN <- data$Nugdc/data$Wt/10 
 data$CN <- data$Cugdc/data$Nugdc*14/12
 
+#not sure what this line is doing
 data <- data[data$Ps!=7 & data$Ps!=38 & data$Ps!=55, ]
 
 ########################################################################################
@@ -138,20 +139,25 @@ write.csv(final.archive, paste("final.archive", runfile.id, "csv", sep="."), row
 
 
 ## Step 1 : Pre-calculate all of the means and stdevs of the standards
+
+# add columns for these to the dataframe and fill with 0's
 normd15N <- rep(0, length(data$d15Ndc))
 d15Nsd <- rep(0, length(data$d15Ndc))
 data <- data.frame(data, normd15N, d15Nsd)
 
-
+# calculate the means and sd of RM1 and RM2
 RM1M <- mean(data$d15Ndc[data$ID==paste(RM1.name)])
 RM2M <- mean(data$d15Ndc[data$ID==paste(RM2.name)]) 
 RM1Msd <- sd(data$d15Ndc[data$ID==paste(RM1.name)])
 RM2Msd <- sd(data$d15Ndc[data$ID==paste(RM2.name)])
+
+#calculate the mean and sd of the salanine results
 alaninesd <- sd(data$d15Ndc[data$ID=="SALANINE" & data$Ps > 10])
 mean.alanine <- mean(data$d15Ndc[data$ID=="SALANINE" & data$Ps > 10])
 
 ## Step 2: Normalize data and calculate uncertainties
 ## This is based on Kragten's spreadsheet
+
 for (i in 1:nrow(data)){
   x1 <- data$d15Ndc[i]
   measuredcolumn <- c(RM1T.N, RM1M, RM2T.N, RM2M, x1)
