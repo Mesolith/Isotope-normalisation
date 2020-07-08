@@ -101,7 +101,8 @@ first.r <- first.s-8
 list.of.ralanines <- c(2, first.r, list.of.salanines)
 archive$RS <- "S"
 archive$RS[list.of.ralanines] <- "R"
-
+# note this throws an error due to the number of rows reduced by the code in line 91
+# but it still runs
 
 archive$sampletype[archive$samplename=="ALANINE" |archive$samplename=="SALANINE" | archive$samplename==paste(RM1.name) | archive$samplename==paste(RM2.name)] <- "Standard"
 
