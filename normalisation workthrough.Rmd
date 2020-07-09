@@ -154,8 +154,173 @@ for (i in c(1, 3:13, 15:17)){data[,i] <- as.numeric(as.character(data[,i]))}
  
  **this makes the columns that need to numeric into numeric..but by itteration rather than selecting and using the as.numeric function..prosibly because as they are factors they might return the underlying factor integer value which would not be helpful**
  
+ *#Add pcC, pcN and CN ratio						#NB these are based on drift corrected values*
+*data$pcC <- data$Cugdc/data$Wt/10*
+*data$pcN <- data$Nugdc/data$Wt/10* 
+*data$CN <- data$Cugdc/data$Nugdc***14/12*
+```{r}
+#Add pcC, pcN and CN ratio						#NB these are based on drift corrected values
+data$pcC <- data$Cugdc/data$Wt/10
+data$pcN <- data$Nugdc/data$Wt/10 
+data$CN <- data$Cugdc/data$Nugdc*14/12
+```
  
- 
+**this chunk  calculates and adds the weight percent C and N and the C/N molar ratio to the df data into the colmns filled with zeros that were made when the df was initiated**
+
+*# This is removing some data points at pos 7, 38 and 55*
+*# because in this particular run they have wrong values or*
+*# are poor analyses....but only in this run!!!*
+*data <- data[data$Ps!=7 & data$Ps!=38 & data$Ps!=55, ]*
+
+```{r}
+# This is removing some data points at pos 7, 38 and 55
+# because in this particular run they have wrong values or
+# are poor analyses....but only in this run!!!
+data <- data[data$Ps!=7 & data$Ps!=38 & data$Ps!=55, ]
+```
+
+**this chunk removes the entries of the df data where position (Ps) =7, 38 and 55 as these are bad analyses in this run as can be seen from the original drift coreected data in the csv or the original .prn file output of the mass spec..So these positions are specific to this run only other runs may have other bad values or none at all**
+
+
+**This next section deals with creating an archiev copy of the data with some extra data fields which  at one time we required in the lab but have given up on recently as it was not done by all users**
+
+*# Create the archive copy*
+
+*archive <- data.frame(samplename=data$ID, sampleweight = data$Wt, RS="S",* *owner="AS", PreparedBy ="AS", Funding="Bogaard ERC", sampletype=0, Taxa="",* *site="", age.context=0, ugN=data$Nugdc, d15N=data$d15Ndc, ugC=data$Cugdc,* *d13C=data$d13Cdc, CN=data$CN, labno = paste(runfile.id, data$Ps, sep="-"))*
+
+
+
+```{r}
+archive <- data.frame(samplename=data$ID, sampleweight = data$Wt, RS="S", owner="AS", PreparedBy ="AS", Funding="Bogaard ERC", sampletype=0, Taxa="", site="", age.context=0, ugN=data$Nugdc, d15N=data$d15Ndc, ugC=data$Cugdc, d13C=data$d13Cdc, CN=data$CN, labno = paste(runfile.id, data$Ps, sep="-"))
+
+
+```
+
+**this creates a new df called archive which has the data from the data df plus some extra fields such as owner, PreparedBy, Funding, sampletype, Taxa, site, age.context**
+
+**It also asigins a lab number  in column labno by using the run.id and the run position (Ps) separated by a -**
+
+*list.of.salanines <- data$Ps[archive$samplename=="SALANINE"]*
+*first.s <- list.of.salanines[1]*
+*first.r <- first.s-8*
+*list.of.ralanines <- c(2, first.r, list.of.salanines)*
+*archive$RS <- "S"*
+*archive$RS[list.of.ralanines] <- "R"*
+
+```{r}
+list.of.salanines <- data$Ps[archive$samplename=="SALANINE"]
+first.s <- list.of.salanines[1]
+first.r <- first.s-8
+list.of.ralanines <- c(2, first.r, list.of.salanines)
+archive$RS <- "S"
+#archive$RS[list.of.ralanines] <- "R"
+```
+
+**This makes a vector of the position of all the SALANINE's then stores the position of the first SALANINE in first.s**
+
+**Then it stores the position of the first ref Alanine in first.r..note it relies on consitant spacing of ref alanines in the run it is not working out which are ref alanines.**
+
+**Then it makes a vector of the position of the ref alanines in the run again only relying on constant spacing in the run and taking account that position 2 is a ref alanine.**
+
+**Then it fills everything in the RS column of the df archive with an S but this is redundant as they are all declared S already but does no harm to make sure.**
+
+**Then finaly it trys to replaces the S in the RS column with an R for the ref alanines in the run positions stored in list.of.ralanines...but this noes not work and throws an error as it trys to give an R to the RS of posion 67 whichwould be line 67 in the df this does not exists as we have deleted some bad values from the run and now the df is only 64 entries long.  Also the deleted values would throw off the consitant spacing of the ref alanines in the run..This error causes problems for the rmarkdown doc so I have comented out the offending line in the chunk above.**
+
+*archive$sampletype[archive$samplename=="ALANINE" |archive$samplename=="SALANINE" | archive$samplename==paste(RM1.name) | archive$samplename==paste(RM2.name)] <- "Standard"*
+
+*archive$sampletype[archive$samplename!="ALANINE" & archive$samplename!="SALANINE" & archive$samplename!=paste(RM1.name) & archive$samplename!=paste(RM2.name)] <- "Plant"*
+
+*archive$age.context[archive$samplename=="ALANINE" |archive$samplename=="SALANINE" | archive$samplename==paste(RM1.name) | archive$samplename==paste(RM2.name)] <- "Modern"*
+
+*archive$age.context[archive$samplename!="ALANINE" & archive$samplename!="SALANINE" & archive$samplename!=paste(RM1.name) & archive$samplename!=paste(RM2.name)] <- "Bronze Age"*
+
+
+*names(archive) <- c("sample name", "sample weight", "R/S", "Owner", "Prepared by", "Funding", "Sample type", "Taxa", "Site", "age/context", "ug N", "d15N AIR", "ug C", "d13C VPDB", "C/N molar", "Lab number")*
+
+
+```{r}
+archive$sampletype[archive$samplename=="ALANINE" |archive$samplename=="SALANINE" | archive$samplename==paste(RM1.name) | archive$samplename==paste(RM2.name)] <- "Standard"
+
+archive$sampletype[archive$samplename!="ALANINE" & archive$samplename!="SALANINE" & archive$samplename!=paste(RM1.name) & archive$samplename!=paste(RM2.name)] <- "Plant"
+
+archive$age.context[archive$samplename=="ALANINE" |archive$samplename=="SALANINE" | archive$samplename==paste(RM1.name) | archive$samplename==paste(RM2.name)] <- "Modern"
+
+archive$age.context[archive$samplename!="ALANINE" & archive$samplename!="SALANINE" & archive$samplename!=paste(RM1.name) & archive$samplename!=paste(RM2.name)] <- "Bronze Age"
+
+
+names(archive) <- c("sample name", "sample weight", "R/S", "Owner", "Prepared by", "Funding", "Sample type", "Taxa", "Site", "age/context", "ug N", "d15N AIR", "ug C", "d13C VPDB", "C/N molar", "Lab number")
+
+```
+
+**This programtically fills in the sample type and age columns in the df archive with plant and brinze age for samples and standard and modern for alanines and the other references used RM1 and RM2**
+
+**Then it tidies up the column names with the correct full names required by the old lab archive system**
+
+
+*run.id <- matrix(nrow=2, ncol=16)*
+*run.id[1, 1:2] <- c("Run number", paste(runfile.id))*
+*run.id[2, 1:2] <- c("User", "Amy Styring")*
+*run.id[1:2, 3:16] <- ""*
+*run.id <- data.frame(run.id)*
+*names(run.id) <- names(archive)*
+*archive <- rbind(archive, run.id)*
+*write.csv(archive, paste("archive", runfile.id, "csv", sep="."))*
+
+```{r}
+run.id <- matrix(nrow=2, ncol=16)
+run.id[1, 1:2] <- c("Run number", paste(runfile.id))
+run.id[2, 1:2] <- c("User", "Amy Styring")
+run.id[1:2, 3:16] <- ""
+run.id <- data.frame(run.id)
+names(run.id) <- names(archive)
+archive <- rbind(archive, run.id)
+write.csv(archive, paste("archive", runfile.id, "csv", sep="."))
+```
+
+**This makes an empty 2x16 matrix called run.id, it then puts the string 'Run number and the run file id in this case 160812 into the first two positions of the first row of the matrix.** 
+**Then it puts the strings User and Amy Styring into the first two positions of the second line of the matrix**
+**Then it puts pairs of quotation marks in the remaining positions in lines 1 and 2 of the matrix**
+**Then it turns the 2x16 matrix into a data frame called run.id and call the coulnms the same names as used in the archive df so that it can then append the df run.id to the df archive**
+**Finaly it writes the new archieve df out to a .csv file called archiev.160812.csv**
+
+*data2 <- read.csv(paste("archive", runfile.id, "csv", sep="."), header=F)*
+
+```{r}
+data2 <- read.csv(paste("archive", runfile.id, "csv", sep="."), header=F)
+
+```
+
+**this reads the recently created .csv file (using it programatically created name) into a df called data2**
+**the following section tidies up the file format, moves the run number and the user name to the top and outputs the final.archive csv file**
+
+*bottom <- nrow(data2)*
+*run.id <- data2[(bottom-1):bottom, ]*
+*just.data <- data2[1:(bottom-2), ]*
+*final.archive <- rbind(run.id[2:17], just.data[2:17])*
+*write.csv(final.archive, paste("final.archive", runfile.id, "csv", sep="."), row.names=FALSE)*
+
+```{r}
+
+bottom <- nrow(data2)
+run.id <- data2[(bottom-1):bottom, ]
+just.data <- data2[1:(bottom-2), ]
+final.archive <- rbind(run.id[2:17], just.data[2:17])
+write.csv(final.archive, paste("final.archive", runfile.id, "csv", sep="."), row.names=FALSE)
+
+
+```
+
+**This stores the number of rows of data2 into the variable bottom then uses that variable to index the last two lines of data2 and replaces the previous contents of run.id df with the 2 last lines of data2**
+**then it takes all except the last 2 lines of the df data2 and reads them into a df called just.data with the column names now as the first row of the actual df rather than as headders..clever**
+
+**Then it appends columns 2:17 of just data to columns 2:17 of run id and reads this into the df called final.archive**
+**lastly it writes this out to a .csv file programatically named final.archive_ (run number).csv in this casefinal.archive_160812.csv**
+
+## Now the normalisation part begins
+
+
+
+
 
 
 
