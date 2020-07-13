@@ -318,12 +318,106 @@ write.csv(final.archive, paste("final.archive", runfile.id, "csv", sep="."), row
 
 ## Now the normalisation part begins
 
+### Step 1 : Pre-calculate all of the means and stdevs of the standards
+
+*# add columns for these to the dataframe and fill with 0's*
+*normd15N <- rep(0, length(data$d15Ndc))*
+*d15Nsd <- rep(0, length(data$d15Ndc))*
+*data <- data.frame(data, normd15N, d15Nsd)*
+```{r}
+
+# add columns for these to the dataframe and fill with 0's
+normd15N <- rep(0, length(data$d15Ndc))
+d15Nsd <- rep(0, length(data$d15Ndc))
+data <- data.frame(data, normd15N, d15Nsd)
+```
+
+**This adds in the empty columns for the mean and sd of the drift corrected 15N values for the standards and fills them with zeros**
+
+*# calculate the means and sd of RM1 and RM2*
+*RM1M <- mean(data$d15Ndc[data$ID==paste(RM1.name)])*
+*RM2M <- mean(data$d15Ndc[data$ID==paste(RM2.name)])* 
+*RM1Msd <- sd(data$d15Ndc[data$ID==paste(RM1.name)])*
+*RM2Msd <- sd(data$d15Ndc[data$ID==paste(RM2.name)])*
+
+```{r}
+# calculate the means and sd of RM1 and RM2
+RM1M <- mean(data$d15Ndc[data$ID==paste(RM1.name)])
+RM2M <- mean(data$d15Ndc[data$ID==paste(RM2.name)]) 
+RM1Msd <- sd(data$d15Ndc[data$ID==paste(RM1.name)])
+RM2Msd <- sd(data$d15Ndc[data$ID==paste(RM2.name)])
+
+```
+
+**This chunk programatically finds the values for 15N for the  scale compression reference samples and calculates mean and sd for them and stores them in appropiately named variables** 
+
+*#calculate the mean and sd of the salanine results*
+*alaninesd <- sd(data$d15Ndc[data$ID=="SALANINE" & data$Ps > 10])*
+*mean.alanine <- mean(data$d15Ndc[data$ID=="SALANINE" & data$Ps > 10])*
+
+```{r}
+#calculate the mean and sd of the salanine results
+alaninesd <- sd(data$d15Ndc[data$ID=="SALANINE" & data$Ps > 10])
+mean.alanine <- mean(data$d15Ndc[data$ID=="SALANINE" & data$Ps > 10])
+```
+
+**This chunk calculates the mean and sd of all the SALANINEs in the df data where run position Ps is > 10 so avoiding the warm up Alanines at the start of the run although these are not called SALANINE in this run so would have been ignored anyway**
+
+##Now the real work begins
+
+*## Step 2: Normalize data and calculate uncertainties*
+*## This is based on Kragten's spreadsheet*
+
+*for (i in 1:nrow(data)){*
+  *x1 <- data$d15Ndc[i]*
+  *measuredcolumn <- c(RM1T.N, RM1M, RM2T.N, RM2M, x1)*
+  *matrix1 <- cbind(c(RM1Tsd.N, 0, 0, 0, 0),* 
+                   *c(0, RM1Msd, 0, 0, 0),* 
+                   *c(0, 0, RM2Tsd.N, 0, 0),* 
+                   *c(0, 0, 0,RM2Msd, 0),*
+                   *c(0,0,0,0,alaninesd))*
+  *matrix2 <- rbind(rep(RM1T.N, 5), rep(RM1M, 5), rep(RM2T.N, 5), rep(RM2M, 5), rep(x1, 5))*
+  *matrix3 <- matrix1 + matrix2*
+  *raw2true <- function(cv) {cv[1] +* *(cv[5]-cv[2])***((cv[1]-cv[3])/(cv[2]-cv[4]))}*
+  *dsqr <- function(colno){(raw2true(matrix3[,colno])-raw2true(measuredcolumn))^2}*
+  *normalizedd15N <- raw2true(measuredcolumn)*
+  *finalerror <- sqrt(dsqr(1)+dsqr(2)+dsqr(3)+dsqr(4)+dsqr(5))*
+  *data$d15Nsd[i]<- finalerror*
+  *data$normd15N[i] <- normalizedd15N*
+*}*
 
 
 
+```{r}
+## Step 2: Normalize data and calculate uncertainties
+## This is based on Kragten's spreadsheet
 
+for (i in 1:nrow(data)){
+  x1 <- data$d15Ndc[i]
+  measuredcolumn <- c(RM1T.N, RM1M, RM2T.N, RM2M, x1)
+  matrix1 <- cbind(c(RM1Tsd.N, 0, 0, 0, 0), 
+                   c(0, RM1Msd, 0, 0, 0), 
+                   c(0, 0, RM2Tsd.N, 0, 0), 
+                   c(0, 0, 0,RM2Msd, 0),
+                   c(0,0,0,0,alaninesd))
+  matrix2 <- rbind(rep(RM1T.N, 5), rep(RM1M, 5), rep(RM2T.N, 5), rep(RM2M, 5), rep(x1, 5))
+  matrix3 <- matrix1 + matrix2
+  raw2true <- function(cv) {cv[1] + (cv[5]-cv[2])*((cv[1]-cv[3])/(cv[2]-cv[4]))}
+  dsqr <- function(colno){(raw2true(matrix3[,colno])-raw2true(measuredcolumn))^2}
+  normalizedd15N <- raw2true(measuredcolumn)
+  finalerror <- sqrt(dsqr(1)+dsqr(2)+dsqr(3)+dsqr(4)+dsqr(5))
+  data$d15Nsd[i]<- finalerror
+  data$normd15N[i] <- normalizedd15N
+}
+```
 
+**This starts a for loop for evry row in the df data it reads the drift corrected value of d15 N into the variable x1**
 
+**Then it reads the true d15N value of RM1 the measured d15N value of RM1 the true d15N value of RM2, the measued value of RM2 and the current value of x1 into the vector measuredcolumn**
 
+**Then it builds a 5x5 matrix called matrix1 with the sd values for RM1T, RM1M, RM2T, RM2M and alaninesd down the leading diagonal**
 
+**Then it builds another 5x5 matrix called matrix2 with the  true d15N value for RM1 repeated five times in the first row the d15N value for RM1M repeated five times in the second row. The true d15N value for RM2 repeated r times in the third row. The value for RM2M five times in the fouth row and the current value for x1 repeated five times in the fith row**
+
+**then it creates a third 5x5 matrix called matrix3 by addition of matrix1 and matrix2, such that matrix 3 has the sd + the d15N value down the leading diagonal and d15N value of RM1T, RM1M, RM2T, RM2M and current value of x1 in each of the other positions in the rows respectively**
 
