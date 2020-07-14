@@ -421,3 +421,12 @@ for (i in 1:nrow(data)){
 
 **then it creates a third 5x5 matrix called matrix3 by addition of matrix1 and matrix2, such that matrix 3 has the sd + the d15N value down the leading diagonal and d15N value of RM1T, RM1M, RM2T, RM2M and current value of x1 in each of the other positions in the rows respectively**
 
+**it then defines a function raw2true.This takes a vector of five values cv1 to cv5 and makes a calculation with them. It will apply it to the veror measuredcolumn to calculate a normalised value thus**
+**normalised value = RM1T + (current x1 - RM1M) x ((RM1T-RM2T) / (RM1M-RM2M))**
+
+**(RM1T-RM2T) / (RM1M-RM2M) is the gradient of the calibration line between the two known references materials and their measured values. current value of x1 is the raw data point we are calibrating in this itteration of the loop. This is how it performs the normalisation calibration It DOES NOT fit an explicit linear modle using least squares**.
+
+**next it defines another function  called dsqr**
+**This performs the raw2true function on each coloum of matrix3 and subtracts the raw2true result of the vector measuredcolumn from that and squares the result**
+
+**Having set up the loop, the matrixes and the functions it then chugs through the loop for each  drift corrected value of N15 in the df data and stores the values in the df data in the normal15N column in the df data. It also calculates a value for final error by applying dsqr to each column of matrix 3, suming the values and taking the square root. which it then stores in the d15sd column in the df data.**
