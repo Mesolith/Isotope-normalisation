@@ -364,6 +364,7 @@ mean.alanine <- mean(data$d15Ndc[data$ID=="SALANINE" & data$Ps > 10])
 **This chunk calculates the mean and sd of all the SALANINEs in the df data where run position Ps is > 10 so avoiding the warm up Alanines at the start of the run although these are not called SALANINE in this run so would have been ignored anyway**
 
 ##Now the real work begins
+##Firstly for the N15 results
 
 *## Step 2: Normalize data and calculate uncertainties*
 *## This is based on Kragten's spreadsheet*
@@ -424,9 +425,118 @@ for (i in 1:nrow(data)){
 **it then defines a function raw2true.This takes a vector of five values cv1 to cv5 and makes a calculation with them. It will apply it to the veror measuredcolumn to calculate a normalised value thus**
 **normalised value = RM1T + (current x1 - RM1M) x ((RM1T-RM2T) / (RM1M-RM2M))**
 
-**(RM1T-RM2T) / (RM1M-RM2M) is the gradient of the calibration line between the two known references materials and their measured values. current value of x1 is the raw data point we are calibrating in this itteration of the loop. This is how it performs the normalisation calibration It DOES NOT fit an explicit linear modle using least squares**.
+**(RM1T-RM2T) / (RM1M-RM2M) is the gradient of the calibration line between the two known references materials and their measured values. current value of x1 is the raw data point we are calibrating in this itteration of the loop. This is how it performs the normalisation calibration It DOES NOT fit an explicit linear modle using least squares but it uses the well known two point braceting standards calibration equation see paul et al 2007 for example**.
 
 **next it defines another function  called dsqr**
 **This performs the raw2true function on each coloum of matrix3 and subtracts the raw2true result of the vector measuredcolumn from that and squares the result**
 
-**Having set up the loop, the matrixes and the functions it then chugs through the loop for each  drift corrected value of N15 in the df data and stores the values in the df data in the normal15N column in the df data. It also calculates a value for final error by applying dsqr to each column of matrix 3, suming the values and taking the square root. which it then stores in the d15sd column in the df data.**
+**Having set up the loop, the matrixes and the functions it then chugs through the loop for each  drift corrected value of N15 in the df data and stores the values in the df data in the normal15N column in the df data. It also calculates a value for final error by applying dsqr to each column of matrix 3, suming the values and taking the square root. which it then stores in the d15sd column in the df data. again using the equation for th propagation of error for the bracketing standard point calibration method see the SiCAlib progam manual for example**
+
+##Then we do the same proces but for the 13C results
+
+## Step 1 : Pre-calculate all of the means and stdevs of the standards
+*normd13C <- rep(0, length(data$d13Cdc))*
+*d13Csd <- rep(0, length(data$d13Cdc))*
+*data <- data.frame(data, normd13C, d13Csd)*
+
+*RM1M <- mean(data$d13Cdc[data$ID==paste(RM1.name)]) # Make sure to select the correct RM!*
+*RM2M <- mean(data$d13Cdc[data$ID==paste(RM2.name)]) # Make sure to select the correct RM!*
+*RM1Msd <- sd(data$d13Cdc[data$ID==paste(RM1.name)])*
+*RM2Msd <- sd(data$d13Cdc[data$ID==paste(RM2.name)])*
+*alaninesd <- sd(data$d13Cdc[data$ID=="SALANINE" & data$Ps > 10])*
+*mean.alanine <- mean(data$d13Cdc[data$ID=="SALANINE" & data$Ps > 10])*
+
+
+```{r}
+## Step 1 : Pre-calculate all of the means and stdevs of the standards
+normd13C <- rep(0, length(data$d13Cdc))
+d13Csd <- rep(0, length(data$d13Cdc))
+data <- data.frame(data, normd13C, d13Csd)
+
+RM1M <- mean(data$d13Cdc[data$ID==paste(RM1.name)]) # Make sure to select the correct RM!
+RM2M <- mean(data$d13Cdc[data$ID==paste(RM2.name)]) # Make sure to select the correct RM!
+RM1Msd <- sd(data$d13Cdc[data$ID==paste(RM1.name)])
+RM2Msd <- sd(data$d13Cdc[data$ID==paste(RM2.name)])
+alaninesd <- sd(data$d13Cdc[data$ID=="SALANINE" & data$Ps > 10])
+mean.alanine <- mean(data$d13Cdc[data$ID=="SALANINE" & data$Ps > 10])
+
+```
+
+**Note this redifnes RM1M, RM2M, RM1Msd, RM2Msd, alaninesd and mean.alanine to be the relavent measured 13C values**
+**it also adds the blank columns for the corected c data into the df data**
+
+*## Step 2: Normalize data and calculate uncertainties*
+*## This is based on Kragten's spreadsheet*
+*for (i in 1:nrow(data)){*
+  *x1 <- data$d13Cdc[i]*
+  *measuredcolumn <- c(RM1T.C, RM1M, RM2T.C, RM2M, x1)*
+  *matrix1 <- cbind(c(RM1Tsd.C, 0, 0, 0, 0),* 
+                   *c(0, RM1Msd, 0, 0, 0),* 
+                   *c(0, 0, RM2Tsd.C, 0, 0),* 
+                   *c(0, 0, 0,RM2Msd, 0),*
+                   *c(0,0,0,0,alaninesd))*
+  *matrix2 <- rbind(rep(RM1T.C, 5), rep(RM1M, 5), rep(RM2T.C, 5),* *rep(RM2M, 5), rep(x1, 5))*
+  *matrix3 <- matrix1 + matrix2*
+  *raw2true <- function(cv) {cv[1] +* *(cv[5]-cv[2])***((cv[1]-cv[3])/(cv[2]-cv[4]))}*
+  *dsqr <- function(colno){(raw2true(matrix3[,colno])-raw2true(measuredcolumn))^2}*
+  *normalizedd13C <- raw2true(measuredcolumn)*
+  *finalerror <- sqrt(dsqr(1)+dsqr(2)+dsqr(3)+dsqr(4)+dsqr(5))*
+  *data$d13Csd[i]<- finalerror*
+  *data$normd13C[i] <- normalizedd13C*
+*}*
+
+```{r}
+## Step 2: Normalize data and calculate uncertainties
+## This is based on Kragten's spreadsheet
+for (i in 1:nrow(data)){
+  x1 <- data$d13Cdc[i]
+  measuredcolumn <- c(RM1T.C, RM1M, RM2T.C, RM2M, x1)
+  matrix1 <- cbind(c(RM1Tsd.C, 0, 0, 0, 0), 
+                   c(0, RM1Msd, 0, 0, 0), 
+                   c(0, 0, RM2Tsd.C, 0, 0), 
+                   c(0, 0, 0,RM2Msd, 0),
+                   c(0,0,0,0,alaninesd))
+  matrix2 <- rbind(rep(RM1T.C, 5), rep(RM1M, 5), rep(RM2T.C, 5), rep(RM2M, 5), rep(x1, 5))
+  matrix3 <- matrix1 + matrix2
+  raw2true <- function(cv) {cv[1] + (cv[5]-cv[2])*((cv[1]-cv[3])/(cv[2]-cv[4]))}
+  dsqr <- function(colno){(raw2true(matrix3[,colno])-raw2true(measuredcolumn))^2}
+  normalizedd13C <- raw2true(measuredcolumn)
+  finalerror <- sqrt(dsqr(1)+dsqr(2)+dsqr(3)+dsqr(4)+dsqr(5))
+  data$d13Csd[i]<- finalerror
+  data$normd13C[i] <- normalizedd13C
+}
+```
+
+**this applies the same normalisation and error propagation equations for the bracketing standards calibration method as were used for the N calibration above**
+
+**then it does a bit of tidying up**
+**by creating the following variables but with a .C identifer**
+
+*RM1M.C <- RM1M*
+*RM2M.C <- RM2M*
+*RM1Msd.C <- RM1Msd*
+*RM2Msd.C <- RM2Msd*
+
+```{r}
+RM1M.C <- RM1M
+RM2M.C <- RM2M
+RM1Msd.C <- RM1Msd
+RM2Msd.C <- RM2Msd	
+```
+
+
+**note it did not do this for the N related values which would have been more tidy**
+
+## then it writes out the data file with all the data
+
+*write.csv(data, "Alldata.csv")*
+
+```{r}
+write.csv(data, "Alldata.csv")
+
+```
+
+
+## checking the quality of the data, the standards and the normalisation
+
+
